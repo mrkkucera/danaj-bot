@@ -23,6 +23,9 @@ const ZKOUSKA_COMMAND = '!zkouska';
 // Store class message IDs to track reactions and their associated thread IDs
 const classMessages = new Map(); // messageId -> threadId
 
+// Track users who have already reacted to each zkouska
+const userReactions = new Map(); // messageId -> Set of userIds
+
 // Validate configuration
 if (!TOKEN || !SOURCE_CHANNEL_ID || !DESTINATION_CHANNEL_ID) {
     console.error('❌ Error: Missing required environment variables!');
@@ -96,6 +99,9 @@ client.on('messageCreate', async (message) => {
             // Store the message ID and thread ID mapping
             classMessages.set(classMessage.id, thread.id);
             
+            // Initialize the user reactions set for this zkouska
+            userReactions.set(classMessage.id, new Set());
+            
             // Delete the command message
             await message.delete();
             
@@ -149,6 +155,16 @@ client.on('messageReactionAdd', async (reaction, user) => {
             return;
         }
 
+        // Check if this user has already reacted to this zkouska
+        const reactedUsers = userReactions.get(reaction.message.id);
+        
+        if (reactedUsers && reactedUsers.has(user.id)) {
+            console.log(`⚠️  ${user.tag} has already reacted to this zkouska, skipping...`);
+            // Still remove the reaction to keep the UI clean
+            await reaction.users.remove(user.id);
+            return;
+        }
+
         // Fetch the thread
         const thread = await client.channels.fetch(threadId);
 
@@ -179,6 +195,11 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
         // Send to the thread
         await thread.send({ embeds: [notificationEmbed] });
+        
+        // Mark this user as having reacted
+        if (reactedUsers) {
+            reactedUsers.add(user.id);
+        }
         
         console.log(`✅ ${displayName} (${user.tag}) se omluvil ze zkousky`);
 
