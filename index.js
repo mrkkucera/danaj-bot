@@ -36,13 +36,113 @@ if (!TOKEN || !SOURCE_CHANNEL_ID || !DESTINATION_CHANNEL_ID) {
     process.exit(1);
 }
 
+// Function to rebuild state from Discord
+async function rebuildStateFromDiscord() {
+    try {
+        console.log('🔄 Rebuilding state from Discord...');
+        
+        // Fetch the source channel
+        const sourceChannel = await client.channels.fetch(SOURCE_CHANNEL_ID);
+        if (!sourceChannel) {
+            console.error('❌ Could not find source channel!');
+            return;
+        }
+
+        // Fetch the destination channel
+        const destinationChannel = await client.channels.fetch(DESTINATION_CHANNEL_ID);
+        if (!destinationChannel) {
+            console.error('❌ Could not find destination channel!');
+            return;
+        }
+
+        // Fetch recent messages from source channel
+        const messages = await sourceChannel.messages.fetch({ limit: 100 });
+        
+        // Find zkouska messages (messages with the zkouska format and ❌ reaction from the bot)
+        const zkouskaMessages = messages.filter(msg => 
+            msg.author.id === client.user.id &&
+            msg.content.startsWith('📚 **Zkouška**')
+        );
+
+        // Fetch all active threads from destination channel
+        const activeThreads = await destinationChannel.threads.fetchActive();
+        const archivedThreads = await destinationChannel.threads.fetchArchived();
+        
+        // Combine all threads
+        const allThreads = new Map([...activeThreads.threads, ...archivedThreads.threads]);
+
+        console.log(`📊 Found ${zkouskaMessages.size} zkouska messages`);
+        console.log(`📊 Found ${allThreads.size} threads`);
+
+        let rebuiltCount = 0;
+
+        // Match zkouska messages with their threads
+        for (const [messageId, message] of zkouskaMessages) {
+            // Extract description from message
+            const descriptionMatch = message.content.match(/📚 \*\*Zkouška\*\*\n\n(.*?)\n\n\*/s);
+            if (!descriptionMatch) continue;
+            
+            const description = descriptionMatch[1];
+            const threadName = description.length > 100 ? `${description.substring(0, 97)}...` : description;
+            const expectedThreadName = `📚 ${threadName}`;
+
+            // Find matching thread
+            const matchingThread = Array.from(allThreads.values()).find(thread => 
+                thread.name === expectedThreadName
+            );
+
+            if (matchingThread) {
+                // Store the mapping
+                classMessages.set(messageId, matchingThread.id);
+                
+                // Initialize user reactions set
+                const reactedUserIds = new Set();
+                
+                // Fetch messages from the thread to rebuild user reactions
+                try {
+                    const threadMessages = await matchingThread.messages.fetch({ limit: 100 });
+                    
+                    // Extract user IDs from embeds in the thread
+                    for (const [, threadMsg] of threadMessages) {
+                        if (threadMsg.embeds.length > 0) {
+                            const embed = threadMsg.embeds[0];
+                            const footerMatch = embed.footer?.text?.match(/User ID: (\d+)/);
+                            if (footerMatch) {
+                                reactedUserIds.add(footerMatch[1]);
+                            }
+                        }
+                    }
+                    
+                    console.log(`   └─ Found ${reactedUserIds.size} previous reactions`);
+                } catch (error) {
+                    console.error(`⚠️  Could not fetch thread messages for ${matchingThread.name}:`, error.message);
+                }
+                
+                userReactions.set(messageId, reactedUserIds);
+                rebuiltCount++;
+                
+                console.log(`✅ Rebuilt: ${description.substring(0, 50)}${description.length > 50 ? '...' : ''}`);
+                console.log(`   └─ Thread: ${matchingThread.name}`);
+            }
+        }
+
+        console.log(`✅ Rebuilt state for ${rebuiltCount} zkouska messages`);
+        console.log('-----------------------------------');
+    } catch (error) {
+        console.error('❌ Error rebuilding state from Discord:', error);
+    }
+}
+
 // Bot ready event
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
     console.log('✅ Bot is online!');
     console.log(`📝 Logged in as: ${client.user.tag}`);
     console.log(`👀 Monitoring channel: ${SOURCE_CHANNEL_ID}`);
     console.log(`📤 Forwarding to channel: ${DESTINATION_CHANNEL_ID}`);
     console.log('-----------------------------------');
+    
+    // Rebuild state from existing Discord messages
+    await rebuildStateFromDiscord();
 });
 
 // Message create event - monitors all messages
@@ -191,7 +291,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
             })
             .setDescription(`**Omlouvenka ze zkoušky:**\n${classDescription}`)
             .setColor('#5865F2')
-            .setTimestamp();
+            .setTimestamp()
+            .setFooter({ text: `User ID: ${user.id}` });
 
         // Send to the thread
         await thread.send({ embeds: [notificationEmbed] });
