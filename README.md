@@ -4,18 +4,53 @@ A Discord bot that manages zkouška (practice) announcements and tracks absences
 
 ## Features
 
-- � Create zkouška announcements with `!zkouska <description>`
+- 📝 Create zkouška announcements with `!zkouska <description>`
 - ❌ Users can react with ❌ to excuse themselves from a zkouška
 - 🧵 Automatically creates threads for each zkouška in a destination channel
 - 👤 Tracks and logs all absences with user information
 - 🔄 Prevents duplicate reactions from the same user
-- � Rebuilds state from Discord on startup (persistent across restarts)
+- 💾 Rebuilds state from Discord on startup (persistent across restarts)
+- 🏥 Health check endpoint for monitoring bot status
 
 ## Prerequisites
 
 - .NET 10.0 SDK or higher
 - A Discord account
 - A Discord server where you have admin permissions
+
+## Health Check Endpoint
+
+The bot exposes a health check HTTP server on port 8080 for monitoring and uptime checks:
+
+### Endpoints
+
+- **GET /health** - Returns bot connection status in JSON format
+  ```json
+  {
+    "status": "Healthy",
+    "checks": [
+      {
+        "name": "discord_bot",
+        "status": "Healthy",
+        "description": "Bot is connected to Discord",
+        "duration": 0.5
+      }
+    ],
+    "totalDuration": 0.5
+  }
+  ```
+  - Status codes: `200 OK` when healthy, `503 Service Unavailable` when unhealthy
+  
+- **GET /** - Simple root endpoint that returns bot status and timestamp
+
+### Using with Digital Ocean
+
+When deploying to Digital Ocean, configure health checks:
+- **HTTP Path**: `/health`
+- **Port**: `8080`
+- **Success Status Code**: `200`
+
+The health check monitors the Discord connection status and will report unhealthy if the bot is not connected to Discord.
 
 ## Setup Instructions
 
@@ -76,8 +111,10 @@ dotnet run
 #### Using pre-built Docker image:
 ```bash
 docker pull ghcr.io/mrkkucera/danaj-bot:latest
-docker run -e AppSettings__DiscordToken=your_token -e AppSettings__Zkouska__SourceChannelId=id -e AppSettings__Zkouska__DestinationChannelId=id ghcr.io/mrkkucera/danaj-bot:latest
+docker run -p 8080:8080 -e AppSettings__DiscordToken=your_token -e AppSettings__Zkouska__SourceChannelId=id -e AppSettings__Zkouska__DestinationChannelId=id ghcr.io/mrkkucera/danaj-bot:latest
 ```
+
+**Note**: Make sure to expose port 8080 when running in Docker to access the health endpoint.
 
 You should see a message indicating the bot is online and monitoring the specified channel.
 
@@ -128,6 +165,11 @@ Configuration can be done through `appsettings.json` or environment variables:
 ### Reactions not being tracked
 - Ensure the bot has "Manage Messages" permission to remove reactions
 - Check that the bot's role is higher than the user's role in the server hierarchy
+
+### Health check returns unhealthy
+- Verify the bot token is correct and valid
+- Check that the bot has been invited to your Discord server
+- Ensure network connectivity to Discord services
 
 ## License
 

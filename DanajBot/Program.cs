@@ -41,5 +41,13 @@ builder.Services.AddSingleton<CommandHandler>();
 builder.Services.AddSingleton<BotService>();
 builder.Services.AddHostedService<BotHostedService>();
 
+// Configure health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<HealthCheckService>("discord_bot");
+
+// Configure web server for health endpoint
+builder.Services.AddSingleton<WebServerHostedService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<WebServerHostedService>());
+
 var host = builder.Build();
 await host.RunAsync();
