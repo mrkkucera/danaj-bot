@@ -1,4 +1,4 @@
-# Build stage
+﻿# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
@@ -11,6 +11,12 @@ RUN dotnet publish -c Release -o /app/publish --no-restore
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine
 WORKDIR /app
+
+# Install ICU libraries for globalization support
+RUN apk add --no-cache icu-libs
+
+# Disable globalization-invariant mode
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
 # Copy the published app
 COPY --from=build /app/publish .
