@@ -1,12 +1,12 @@
-﻿using Discord;
-using Discord.WebSocket;
-using DanajBot.Commands;
+﻿using DanajBot.Commands;
 using DanajBot.Services;
 using DanajBot.Settings;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Discord;
+using Discord.WebSocket;
+using System.Text;
+
+// Enable UTF-8 encoding for console output (fixes emoji display in terminals)
+Console.OutputEncoding = Encoding.UTF8;
 
 var builder = Host.CreateApplicationBuilder(args);
 
