@@ -1,19 +1,19 @@
-# DanajBot - Discord Message Forwarder
+﻿# DanajBot - Discord Zkouška Manager
 
-A Discord bot that monitors a specific channel, forwards messages to another channel, and deletes them from the original channel.
+A Discord bot that manages zkouška (practice) announcements and tracks absences through reactions.
 
 ## Features
 
-- 👀 Monitors a single designated channel
-- 📤 Forwards messages to a destination channel with rich embeds
-- 🗑️ Automatically deletes messages from the source channel
-- 👤 Preserves author information and timestamps
-- 📎 Includes attachment URLs in forwarded messages
-- 🤖 Ignores messages from bots
+- � Create zkouška announcements with `!zkouska <description>`
+- ❌ Users can react with ❌ to excuse themselves from a zkouška
+- 🧵 Automatically creates threads for each zkouška in a destination channel
+- 👤 Tracks and logs all absences with user information
+- 🔄 Prevents duplicate reactions from the same user
+- � Rebuilds state from Discord on startup (persistent across restarts)
 
 ## Prerequisites
 
-- Node.js (v16.9.0 or higher)
+- .NET 10.0 SDK or higher
 - A Discord account
 - A Discord server where you have admin permissions
 
@@ -56,48 +56,63 @@ A Discord bot that monitors a specific channel, forwards messages to another cha
 ### 4. Configure the Bot
 
 1. Clone or download this repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Edit the `.env` file and add your credentials:
-   ```
-   DISCORD_TOKEN=your_bot_token_here
-   SOURCE_CHANNEL_ID=your_source_channel_id_here
-   DESTINATION_CHANNEL_ID=your_destination_channel_id_here
+2. Create an `appsettings.json` file or set environment variables:
+   ```json
+   {
+     "AppSettings__DiscordToken": "your_bot_token_here",
+     "AppSettings__Zkouska__SourceChannelId": "your_source_channel_id_here",
+     "AppSettings__Zkouska__DestinationChannelId": "your_destination_channel_id_here"
+   }
    ```
 
 ### 5. Run the Bot
 
+#### Using .NET CLI:
 ```bash
-npm start
+dotnet restore
+dotnet run
+```
+
+#### Using pre-built Docker image:
+```bash
+docker pull ghcr.io/mrkkucera/danaj-bot:latest
+docker run -e AppSettings__DiscordToken=your_token -e AppSettings__Zkouska__SourceChannelId=id -e AppSettings__Zkouska__DestinationChannelId=id ghcr.io/mrkkucera/danaj-bot:latest
 ```
 
 You should see a message indicating the bot is online and monitoring the specified channel.
 
 ## Configuration
 
-All configuration is done through the `.env` file:
+Configuration can be done through `appsettings.json` or environment variables:
 
 - `DISCORD_TOKEN`: Your bot's authentication token
-- `SOURCE_CHANNEL_ID`: The channel ID to monitor (messages will be deleted from here)
-- `DESTINATION_CHANNEL_ID`: The channel ID to forward messages to
+- `SOURCE_CHANNEL_ID`: The channel ID where zkouška announcements are posted
+- `DESTINATION_CHANNEL_ID`: The channel ID where absence threads are created
 
 ## How It Works
 
-1. The bot listens for messages in the source channel
-2. When a user (not a bot) sends a message:
-   - The bot creates an embed with the message content and author information
-   - Sends the embed to the destination channel
-   - Deletes the original message from the source channel
-3. All operations are logged to the console
+1. **Creating a Zkouška**: Moderators use `!zkouska <description>` in the source channel
+   - Bot posts an announcement with ❌ reaction
+   - Creates a thread in the destination channel
+   - Deletes the command message
+2. **Excusing from Zkouška**: Users react with ❌ to the announcement
+   - Bot logs the absence in the corresponding thread
+   - Removes the user's reaction (keeps UI clean)
+   - Prevents duplicate reactions
+3. **State Persistence**: On startup, the bot rebuilds its state from Discord history
 
 ## Required Bot Permissions
 
-- **Read Messages/View Channels**: To see messages in the source channel
-- **Send Messages**: To send forwarded messages to the destination channel
-- **Manage Messages**: To delete messages from the source channel
-- **Embed Links**: To send rich embed messages
+- **Read Messages/View Channels**: To see messages in both channels
+- **Send Messages**: To post announcements and thread messages
+- **Manage Messages**: To delete command messages and remove reactions
+- **Embed Links**: To send rich embed messages in threads
+- **Create Public Threads**: To create absence tracking threads
+- **Add Reactions**: To add the initial ❌ reaction to announcements
+
+## Commands
+
+- `!zkouska <description>` - Creates a new zkouška announcement (requires Manage Messages permission)
 
 ## Troubleshooting
 
@@ -106,12 +121,13 @@ All configuration is done through the `.env` file:
 - Verify the MESSAGE CONTENT INTENT is enabled in the Developer Portal
 - Ensure the bot has proper permissions in both channels
 
-### Messages are not being deleted
-- Verify the bot has "Manage Messages" permission in the source channel
-- Check that the bot's role is higher than the user's role in the server hierarchy
+### Cannot create zkouška
+- Verify you have "Manage Messages" permission
+- Check that the bot can create threads in the destination channel
 
-### Cannot forward messages
-- Ensure the bot has "Send Messages" and "Embed Links" permissions in the destination channel
+### Reactions not being tracked
+- Ensure the bot has "Manage Messages" permission to remove reactions
+- Check that the bot's role is higher than the user's role in the server hierarchy
 
 ## License
 

@@ -1,17 +1,19 @@
-# Use Node.js Alpine as base image
-FROM node:22.21.1-alpine3.21
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+WORKDIR /src
 
-# Set working directory
+# Copy csproj and restore dependencies
+COPY DanajBot/ ./
+RUN dotnet restore
+#Run build in publish mode
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy application code
-COPY . .
+# Copy the published app
+COPY --from=build /app/publish .
 
 # Run the bot
-CMD ["node", "index.js"]
+ENTRYPOINT ["dotnet", "DanajBot.dll"]

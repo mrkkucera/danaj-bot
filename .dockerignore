@@ -1,7 +1,23 @@
-node_modules
-npm-debug.log
+# .NET build artifacts
+bin/
+obj/
+
+# Environment files
 .env
+appsettings.json
+
+# Git
 .git
 .gitignore
+
+# Documentation
 README.md
+
+# CI/CD
 .github
+
+# Legacy Node.js files
+node_modules
+npm-debug.log
+package*.json
+index.js
