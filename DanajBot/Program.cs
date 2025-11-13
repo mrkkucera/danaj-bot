@@ -1,4 +1,5 @@
 ﻿using DanajBot.Commands;
+using DanajBot.Commands.Zkouska;
 using DanajBot.Services;
 using DanajBot.Settings;
 using Discord;
@@ -14,7 +15,7 @@ var builder = Host.CreateApplicationBuilder(args);
 var settings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>()!;
 builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(settings.Zkouska);
-
+builder.Services.AddSingleton<ZkouskaState>();
 // Configure Discord client
 builder.Services.AddSingleton<DiscordSocketClient>(_ => new DiscordSocketClient(new DiscordSocketConfig
 {
@@ -23,16 +24,11 @@ builder.Services.AddSingleton<DiscordSocketClient>(_ => new DiscordSocketClient(
                      GatewayIntents.MessageContent |
                      GatewayIntents.GuildMessageReactions
 }));
+builder.Services.AddSingleton<ZkouskaStateRebuilder>();
+builder.Services.AddSingleton<ZkouskaReactionHandler>();
 
 // Register commands
-builder.Services.AddSingleton<ICommand>(sp =>
-{
-    var client = sp.GetRequiredService<DiscordSocketClient>();
-    var logger = sp.GetRequiredService<ILogger<ZkouskaCommand>>();
-    var zkSettings = sp.GetRequiredService<ZkouskaSettings>();
-    
-    return new ZkouskaCommand(client, logger, zkSettings);
-});
+builder.Services.AddSingleton<ICommand, ZkouskaCommand>();
 
 // Register command handler
 builder.Services.AddSingleton<CommandHandler>();

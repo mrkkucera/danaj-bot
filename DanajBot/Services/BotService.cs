@@ -1,7 +1,7 @@
-﻿using Discord;
+﻿using DanajBot.Commands;
+using DanajBot.Commands.Zkouska;
+using Discord;
 using Discord.WebSocket;
-using DanajBot.Commands;
-using Microsoft.Extensions.Logging;
 
 namespace DanajBot.Services;
 
@@ -46,8 +46,8 @@ internal class BotService
 
     private async Task ReadyAsync()
     {
-        _logger.LogInformation("? Bot is online!");
-        _logger.LogInformation("?? Logged in as: {Username}#{Discriminator}", 
+        _logger.LogInformation("🤖 Bot is online!");
+        _logger.LogInformation("👤 Logged in as: {Username}#{Discriminator}", 
             _client.CurrentUser.Username, _client.CurrentUser.Discriminator);
         _logger.LogInformation("-----------------------------------");
         
@@ -72,7 +72,7 @@ internal class BotService
         }
         catch (Exception error)
         {
-            _logger.LogError(error, "? Error rebuilding state from Discord");
+            _logger.LogError(error, "❌ Error rebuilding state from Discord");
         }
     }
 
