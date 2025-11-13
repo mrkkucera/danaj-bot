@@ -4,8 +4,11 @@
     <File Path=".editorconfig" />
     <File Path=".github/workflows/docker-publish.yml" />
     <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
     <File Path="Dockerfile" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="DanajBot.Tests/DanajBot.Tests.csproj" Id="3e2aa338-acdb-4074-b651-9d5cb2974105" />
   <Project Path="DanajBot/DanajBot.csproj" />
 </Solution>

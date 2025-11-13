@@ -65,11 +65,13 @@ internal static class ZkouskaMessageBuilder
     /// </summary>
     public static string CreateThreadName(string description, string zkouskaId)
     {
-        var threadName = description.Length > ZkouskaConstants.MaxThreadNameLength
-            ? $"{description.Substring(0, ZkouskaConstants.ThreadNameTruncateLength)}..."
-            : description;
-        
-        return $"{threadName} #{zkouskaId}";
+      var zkouskaSuffix = $" #{zkouskaId}";
+      if (description.Length + zkouskaSuffix.Length > ZkouskaConstants.MaxThreadNameLength)
+      {
+        description = description.AsSpan(0, ZkouskaConstants.MaxThreadNameLength - zkouskaSuffix.Length).ToString();
+      }
+      
+      return $"{description} #{zkouskaId}";
     }
 
     /// <summary>

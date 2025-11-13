@@ -28,5 +28,4 @@ internal static class ZkouskaConstants
     // Configuration
     public const int ZkouskaIdLength = 8;
     public const int MaxThreadNameLength = 100;
-    public const int ThreadNameTruncateLength = 97;
 }
