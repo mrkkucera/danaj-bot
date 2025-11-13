@@ -288,13 +288,10 @@ internal class ZkouskaCommand : ICommand
                 {
                     _logger.LogInformation("🗑️ {Username} is deleting zkouska message {MessageId}", user.Username, message.Id);
 
-                    // Get the zkouska description from the message content
+                    // Extract zkouska ID from message content
                     var messageContent = message.Content;
-                    var startIndex = messageContent.IndexOf("📝 **Zkouška**\n\n") + "📝 **Zkouška**\n\n".Length;
-                    var endIndex = messageContent.IndexOf("\n\n*");
-                    var zkouskaDescription = (startIndex >= 0 && endIndex >= 0) 
-                        ? messageContent.Substring(startIndex, endIndex - startIndex) 
-                        : "Unknown zkouska";
+                    var match = Regex.Match(messageContent, @"`(#[a-fA-F0-9]{8})`");
+                    var zkouskaId = match.Success ? match.Groups[1].Value : "Unknown";
 
                     // Fetch the thread
                     var thread = await _client.GetChannelAsync(threadId) as IThreadChannel;
@@ -328,7 +325,7 @@ internal class ZkouskaCommand : ICommand
                     _zkouskaMessages.TryRemove(message.Id, out _);
                     _userReactions.TryRemove(message.Id, out _);
                     
-                    _logger.LogInformation("✅ {Username} successfully deleted zkouska: {Description}", user.Username, zkouskaDescription);
+                    _logger.LogInformation("✅ {Username} successfully deleted zkouska {ZkouskaId}", user.Username, zkouskaId);
                 }
                 catch (Exception error)
                 {
