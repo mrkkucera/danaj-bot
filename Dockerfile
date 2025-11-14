@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
-COPY DanajBot/ ./
+COPY DanajBot/ Directory.Build.props Directory.Packages.props ./
 RUN dotnet restore
 #Run build in publish mode
 RUN dotnet publish -c Release -o /app/publish --no-restore
