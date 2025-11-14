@@ -27,8 +27,7 @@ internal class ZkouskaReactionHandler
     /// </summary>
     public async Task<bool> HandleDeleteReactionAsync(IUserMessage message, IUser user, SocketGuildUser? member, ulong threadId)
     {
-        // Check if user has moderator permissions
-        if (member == null || !member.GuildPermissions.ManageMessages)
+        if (member == null || !HasManageMessagesInChannel(member, message.Channel))
         {
             _logger.LogWarning("⚠️ {Username} attempted to delete zkouska but lacks moderator permissions", user.Username);
             await message.RemoveReactionAsync(new Emoji(ZkouskaConstants.DeleteEmoji), user);
@@ -82,9 +81,7 @@ internal class ZkouskaReactionHandler
 
         try
         {
-            // Fetch the thread
-            var thread = await _client.GetChannelAsync(threadId) as IThreadChannel;
-            if (thread == null)
+            if (await _client.GetChannelAsync(threadId) is not IThreadChannel thread)
             {
                 _logger.LogError("❌ Could not find thread!");
                 return false;
@@ -93,11 +90,9 @@ internal class ZkouskaReactionHandler
             var displayName = ZkouskaHelper.GetDisplayName(member?.DisplayName, user.Username);
             var avatarUrl = ZkouskaHelper.GetAvatarUrl(user.GetAvatarUrl(), user.GetDefaultAvatarUrl());
 
-            // Send absence notification to thread
             var notificationEmbed = ZkouskaMessageBuilder.CreateAbsenceEmbed(displayName, avatarUrl, user.Id);
             await thread.SendMessageAsync(embed: notificationEmbed);
 
-            // Mark this user as having reacted
             reactedUsers?.Add(user.Id);
 
             _logger.LogInformation("📩 {DisplayName} ({Username}) se omluvil ze zkousky", displayName, user.Username);
@@ -115,9 +110,17 @@ internal class ZkouskaReactionHandler
         }
     }
 
-    /// <summary>
-    /// Sends closing message to thread
-    /// </summary>
+    private static bool HasManageMessagesInChannel(SocketGuildUser member, IMessageChannel channel)
+    {
+        if (channel is not SocketGuildChannel guildChannel)
+        {
+            return false;
+        }
+
+        var channelPermissions = member.GetPermissions(guildChannel);
+        return channelPermissions.ManageMessages;
+    }
+
     private async Task SendClosingMessageAsync(IThreadChannel thread, SocketGuildUser member, IUser user)
     {
         var displayName = ZkouskaHelper.GetDisplayName(member.DisplayName, user.Username);

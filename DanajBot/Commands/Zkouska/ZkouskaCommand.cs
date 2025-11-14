@@ -41,7 +41,7 @@ internal class ZkouskaCommand : ICommand
 
         var guildUser = message.Author as SocketGuildUser;
         
-        if (!HasModeratorPermissions(guildUser))
+        if (!HasModeratorPermissions(guildUser, message.Channel))
         {
             await message.Channel.SendMessageAsync(ZkouskaConstants.NoPermissionMessage);
             return true;
@@ -56,7 +56,7 @@ internal class ZkouskaCommand : ICommand
         }
 
         // guildUser cannot be null here because HasModeratorPermissions ensures it
-        await CreateZkouskaAsync(message, guildUser!, description);
+        await CreateZkouskaAnnouncementAsync(message, guildUser!, description);
         return true;
     }
 
@@ -86,7 +86,7 @@ internal class ZkouskaCommand : ICommand
         if (!_state.ZkouskaMessageIdToThreadId.TryGetValue(message.Id, out var threadId))
             return;
 
-        var user = await GetUserAsync(reaction);
+        var user = await GetUserFromReactionAsync(reaction);
         if (user == null)
             return;
 
@@ -96,35 +96,29 @@ internal class ZkouskaCommand : ICommand
         await ProcessReactionAsync(message, reaction.Emote.Name, user, member, threadId);
     }
 
-    /// <summary>
-    /// Checks if the message is a valid zkouska command
-    /// </summary>
     private bool IsValidCommand(SocketMessage message)
     {
         return message.Channel.Id == _settings.SourceChannelId &&
                message.Content.StartsWith($"{CommandName} ");
     }
 
-    /// <summary>
-    /// Checks if user has moderator permissions
-    /// </summary>
-    private static bool HasModeratorPermissions(SocketGuildUser? guildUser)
+    private static bool HasModeratorPermissions(SocketGuildUser? guildUser, ISocketMessageChannel channel)
     {
-        return guildUser != null && guildUser.GuildPermissions.ManageMessages;
+        if (guildUser == null || channel is not SocketGuildChannel guildChannel)
+        {
+            return false;
+        }
+
+        var channelPermissions = guildUser.GetPermissions(guildChannel);
+        return channelPermissions.ManageMessages;
     }
 
-    /// <summary>
-    /// Extracts description from command message
-    /// </summary>
     private string ExtractDescription(string content)
     {
         return content.Substring(CommandName.Length + 1).Trim();
     }
 
-    /// <summary>
-    /// Creates a new zkouska announcement
-    /// </summary>
-    private async Task CreateZkouskaAsync(SocketMessage message, SocketGuildUser guildUser, string description)
+    private async Task CreateZkouskaAnnouncementAsync(SocketMessage message, SocketGuildUser guildUser, string description)
     {
         try
         {
@@ -137,9 +131,8 @@ internal class ZkouskaCommand : ICommand
 
             var zkouskaId = ZkouskaMessageBuilder.GenerateZkouskaId();
             var zkouskaMessage = await SendZkouskaMessageAsync(message.Channel, zkouskaId, description);
-            var thread = await CreateThreadAsync(destinationChannel, description, zkouskaId);
+            var thread = await CreateZkouskaAbsencesThreadAsync(destinationChannel, description, zkouskaId);
 
-            // Store the mapping
             _state.ZkouskaMessageIdToThreadId[zkouskaMessage.Id] = thread.Id;
             _state.ZkouskaMessageToUserReactions[zkouskaMessage.Id] = new HashSet<ulong>();
 
@@ -155,9 +148,6 @@ internal class ZkouskaCommand : ICommand
         }
     }
 
-    /// <summary>
-    /// Gets the destination channel
-    /// </summary>
     private async Task<ITextChannel?> GetDestinationChannelAsync()
     {
         var channel = await _client.GetChannelAsync(_settings.DestinationChannelId) as ITextChannel;
@@ -168,9 +158,6 @@ internal class ZkouskaCommand : ICommand
         return channel;
     }
 
-    /// <summary>
-    /// Sends the zkouska message to the channel
-    /// </summary>
     private static async Task<IUserMessage> SendZkouskaMessageAsync(
         ISocketMessageChannel channel,
         string zkouskaId,
@@ -185,10 +172,7 @@ internal class ZkouskaCommand : ICommand
         return zkouskaMessage;
     }
 
-    /// <summary>
-    /// Creates a thread for the zkouska
-    /// </summary>
-    private static async Task<IThreadChannel> CreateThreadAsync(
+    private static async Task<IThreadChannel> CreateZkouskaAbsencesThreadAsync(
         ITextChannel destinationChannel,
         string description,
         string zkouskaId)
@@ -200,9 +184,6 @@ internal class ZkouskaCommand : ICommand
             ThreadArchiveDuration.OneWeek);
     }
 
-    /// <summary>
-    /// Sends creator notification to the thread
-    /// </summary>
     private static async Task SendCreatorNotificationAsync(
         IThreadChannel thread,
         SocketGuildUser guildUser,
@@ -222,9 +203,6 @@ internal class ZkouskaCommand : ICommand
         await thread.SendMessageAsync(embed: creatorEmbed);
     }
 
-    /// <summary>
-    /// Logs zkouska creation
-    /// </summary>
     private void LogZkouskaCreation(string username, string zkouskaId, string description, IThreadChannel thread)
     {
         _logger.LogInformation(
@@ -235,19 +213,13 @@ internal class ZkouskaCommand : ICommand
         _logger.LogInformation("🧵 Created thread: {ThreadName} ({ThreadId})", thread.Name, thread.Id);
     }
 
-    /// <summary>
-    /// Gets the user from reaction
-    /// </summary>
-    private async Task<IUser?> GetUserAsync(SocketReaction reaction)
+    private async Task<IUser?> GetUserFromReactionAsync(SocketReaction reaction)
     {
         return reaction.User.IsSpecified
             ? reaction.User.Value
             : await _client.GetUserAsync(reaction.UserId);
     }
 
-    /// <summary>
-    /// Processes different types of reactions
-    /// </summary>
     private async Task ProcessReactionAsync(
         IUserMessage message,
         string emoteName,
