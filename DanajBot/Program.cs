@@ -15,6 +15,7 @@ var builder = Host.CreateApplicationBuilder(args);
 var settings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>()!;
 builder.Services.AddSingleton(settings);
 builder.Services.AddSingleton(settings.Zkouska);
+builder.Services.AddSingleton(settings.EveryonePermissionChecksSettings);
 builder.Services.AddSingleton<ZkouskaState>();
 // Configure Discord client
 builder.Services.AddSingleton<DiscordSocketClient>(_ => new DiscordSocketClient(new DiscordSocketConfig
@@ -40,6 +41,9 @@ builder.Services.AddHostedService<BotHostedService>();
 // Configure web server for health endpoint
 builder.Services.AddSingleton<WebServerHostedService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WebServerHostedService>());
+
+// Configure permission checker service
+builder.Services.AddHostedService<PermissionCheckerService>();
 
 var host = builder.Build();
 await host.RunAsync();

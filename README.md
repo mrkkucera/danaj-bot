@@ -11,6 +11,8 @@ A Discord bot that manages zkouška (practice) announcements and tracks absences
 - 🔄 Prevents duplicate reactions from the same user
 - 💾 Rebuilds state from Discord on startup (persistent across restarts)
 - 🏥 Health check endpoint for monitoring bot status
+- 🔐 Monitors @everyone role permissions across all categories and channels
+- ⚠️ Reports permission issues to a designated bot chat channel
 
 ## Prerequisites
 
@@ -87,6 +89,7 @@ The health check monitors the Discord connection status and will report unhealth
    - User Settings > App Settings > Advanced > Developer Mode
 2. Right-click on the source channel (to monitor) and click "Copy Channel ID"
 3. Right-click on the destination channel (to forward to) and click "Copy Channel ID"
+4. (Optional) Right-click on the channel to monitor permissions and click "Copy Channel ID"
 
 ### 4. Configure the Bot
 
@@ -95,8 +98,11 @@ The health check monitors the Discord connection status and will report unhealth
    ```json
    {
      "AppSettings__DiscordToken": "your_bot_token_here",
+     "AppSettings__BotChatChannelId": "bot_notification_channel_id",
      "AppSettings__Zkouska__SourceChannelId": "your_source_channel_id_here",
-     "AppSettings__Zkouska__DestinationChannelId": "your_destination_channel_id_here"
+     "AppSettings__Zkouska__DestinationChannelId": "your_destination_channel_id_here",
+     "AppSettings__EveryonePermissionChecksSettings__VerificationCategoryId": "verification_category_id",
+     "AppSettings__EveryonePermissionChecksSettings__PermissionCheckIntervalMinutes": 60
    }
    ```
 
@@ -122,9 +128,13 @@ You should see a message indicating the bot is online and monitoring the specifi
 
 Configuration can be done through `appsettings.json` or environment variables:
 
-- `DISCORD_TOKEN`: Your bot's authentication token
-- `SOURCE_CHANNEL_ID`: The channel ID where zkouška announcements are posted
-- `DESTINATION_CHANNEL_ID`: The channel ID where absence threads are created
+- `AppSettings__DiscordToken`: Your bot's authentication token
+- `AppSettings__BotChatChannelId`: (Optional) Channel ID where permission issues are reported
+- `AppSettings__Zkouska__SourceChannelId`: The channel ID where zkouška announcements are posted
+- `AppSettings__Zkouska__DestinationChannelId`: The channel ID where absence threads are created
+- `AppSettings__EveryonePermissionChecksSettings__VerificationCategoryId`: (Optional) Category ID for verification channels to monitor permissions (set to 0 to disable)
+- `AppSettings__EveryonePermissionChecksSettings__PermissionCheckIntervalMinutes`: (Optional) How often to check permissions in minutes (default: 60)
+- `AppSettings__Reporting__ChannelId`: (Optional) Channel ID to report permission issues
 
 ## How It Works
 
@@ -137,6 +147,10 @@ Configuration can be done through `appsettings.json` or environment variables:
    - Removes the user's reaction (keeps UI clean)
    - Prevents duplicate reactions
 3. **State Persistence**: On startup, the bot rebuilds its state from Discord history
+4. **Permission Monitoring**: Periodically checks @everyone role permissions
+   - Validates verification category allows required permissions (ViewChannel, ReadMessageHistory, SendMessages, AddReactions, MentionEveryone)
+   - Ensures other categories deny ViewChannel for @everyone
+   - Reports any issues to the configured bot chat channel
 
 ## Required Bot Permissions
 
