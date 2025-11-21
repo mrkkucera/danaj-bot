@@ -167,6 +167,8 @@ internal class ZkouskaCommand : ICommand
         var zkouskaMessage = await channel.SendMessageAsync(messageText);
 
         await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.AbsenceEmoji));
+        await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.LateEmoji));
+        await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.AttendingEmoji));
         await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.DeleteEmoji));
 
         return zkouskaMessage;
@@ -240,6 +242,14 @@ internal class ZkouskaCommand : ICommand
 
             case ZkouskaConstants.AbsenceEmoji:
                 await _reactionHandler.HandleAbsenceReactionAsync(message, user, member, threadId);
+                break;
+
+            case ZkouskaConstants.LateEmoji:
+                await _reactionHandler.HandleLateReactionAsync(message, user, member, threadId);
+                break;
+
+            case ZkouskaConstants.AttendingEmoji:
+                await _reactionHandler.HandleAttendingReactionAsync(message, user, member, threadId);
                 break;
 
             default:

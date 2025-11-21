@@ -18,6 +18,9 @@ RUN apk add --no-cache icu-libs
 # Disable globalization-invariant mode
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
 
+# Set timezone to Europe/Prague
+ENV TZ=Europe/Prague
+
 # Copy the published app
 COPY --from=build /app/publish .
 

@@ -7,6 +7,8 @@ internal static class ZkouskaConstants
 {
     // Emojis
     public const string AbsenceEmoji = "❌";
+    public const string LateEmoji = "🕐";
+    public const string AttendingEmoji = "✅";
     public const string DeleteEmoji = "🗑️";
     public const string ZkouskaEmoji = "📝";
     public const string LockEmoji = "🔒";

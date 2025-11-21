@@ -54,6 +54,7 @@ internal class ZkouskaStateRebuilder
 
             _state.ZkouskaMessageToUserReactions.Clear();
             _state.ZkouskaMessageIdToThreadId.Clear();
+            _state.UserReactionToThreadMessageId.Clear();
 
             foreach (var kvp in state.MessageToThread)
             {
@@ -62,6 +63,10 @@ internal class ZkouskaStateRebuilder
             foreach (var kvp in state.ZkouskaReactions)
             {
               _state.ZkouskaMessageToUserReactions[kvp.Key] = kvp.Value;
+            }
+            foreach (var kvp in state.UserReactionMessages)
+            {
+              _state.UserReactionToThreadMessageId[kvp.Key] = kvp.Value;
             }
         }
         catch (Exception error)
@@ -112,12 +117,16 @@ internal class ZkouskaStateRebuilder
     /// <summary>
     /// Matches zkouska messages with their threads and rebuilds state
     /// </summary>
-    private async Task<(Dictionary<ulong, ulong> MessageToThread, Dictionary<ulong, HashSet<ulong>> ZkouskaReactions)> MatchMessagesWithThreadsAsync(
+    private async Task<(
+        Dictionary<ulong, ulong> MessageToThread, 
+        Dictionary<ulong, HashSet<ulong>> ZkouskaReactions,
+        Dictionary<(ulong MessageId, ulong UserId), ulong> UserReactionMessages)> MatchMessagesWithThreadsAsync(
         List<IMessage> zkouskaMessages,
         IReadOnlyCollection<IThreadChannel> activeThreads)
     {
         var messageToThread = new Dictionary<ulong, ulong>();
         var userReactions = new Dictionary<ulong, HashSet<ulong>>();
+        var userReactionMessages = new Dictionary<(ulong, ulong), ulong>();
         int rebuiltCount = 0;
 
         foreach (var message in zkouskaMessages)
@@ -135,7 +144,14 @@ internal class ZkouskaStateRebuilder
             if (matchingThread != null)
             {
                 messageToThread[message.Id] = matchingThread.Id;
-                userReactions[message.Id] = await ExtractUserReactionsAsync(matchingThread);
+                var (reactedUsers, reactionMessageMap) = await ExtractUserReactionsAsync(matchingThread, message.Id);
+                userReactions[message.Id] = reactedUsers;
+                
+                foreach (var kvp in reactionMessageMap)
+                {
+                    userReactionMessages[kvp.Key] = kvp.Value;
+                }
+                
                 rebuiltCount++;
 
                 _logger.LogInformation("✅ Rebuilt zkouska {ZkouskaId}", zkouskaId);
@@ -148,33 +164,40 @@ internal class ZkouskaStateRebuilder
         }
 
         _logger.LogInformation("✅ Rebuilt state for {RebuiltCount} zkouska messages", rebuiltCount);
-        return (messageToThread, userReactions);
+        return (messageToThread, userReactions, userReactionMessages);
     }
 
     /// <summary>
     /// Extracts user reactions from thread messages
     /// </summary>
-    private async Task<HashSet<ulong>> ExtractUserReactionsAsync(IThreadChannel thread)
+    private async Task<(HashSet<ulong> ReactedUsers, Dictionary<(ulong MessageId, ulong UserId), ulong> UserReactionMessages)> ExtractUserReactionsAsync(
+        IThreadChannel thread,
+        ulong zkouskaMessageId)
     {
         var reactedUserIds = new HashSet<ulong>();
+        var userReactionMessages = new Dictionary<(ulong, ulong), ulong>();
 
         try
         {
             var threadMessages = await thread.GetMessagesAsync().FlattenAsync();
 
             // Extract user IDs from embeds in thread messages
-            foreach (var embed in threadMessages.SelectMany(threadMsg => threadMsg.Embeds))
+            foreach (var threadMsg in threadMessages)
             {
-                var footerText = embed.Footer?.Text;
-
-                // Skip creator messages
-                if (ZkouskaHelper.IsCreatorMessage(footerText))
-                    continue;
-
-                // Extract user ID from absence messages
-                if (ZkouskaHelper.TryExtractUserIdFromFooter(footerText, out var userId))
+                foreach (var embed in threadMsg.Embeds)
                 {
-                    reactedUserIds.Add(userId);
+                    var footerText = embed.Footer?.Text;
+
+                    // Skip creator messages
+                    if (ZkouskaHelper.IsCreatorMessage(footerText))
+                        continue;
+
+                    // Extract user ID from absence/late messages
+                    if (ZkouskaHelper.TryExtractUserIdFromFooter(footerText, out var userId))
+                    {
+                        reactedUserIds.Add(userId);
+                        userReactionMessages[(zkouskaMessageId, userId)] = threadMsg.Id;
+                    }
                 }
             }
 
@@ -185,6 +208,6 @@ internal class ZkouskaStateRebuilder
             _logger.LogWarning(error, "⚠️ Could not fetch thread messages for {ThreadName}", thread.Name);
         }
 
-        return reactedUserIds;
+        return (reactedUserIds, userReactionMessages);
     }
 }

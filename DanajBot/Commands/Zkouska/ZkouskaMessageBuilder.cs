@@ -14,8 +14,10 @@ internal static class ZkouskaMessageBuilder
     {
         return $"{ZkouskaConstants.ZkouskaEmoji} **Zkouška** `#{zkouskaId}`\n\n" +
                $"{description}\n\n" +
-               $"*Reagujte pomocí {ZkouskaConstants.AbsenceEmoji} pokud se chcete omluvit z této zkoušky. " +
-               $"Vaše reakce po chvilce zmizí, ale bude zaznamenána.*\n" +
+               $"*Reagujte pomocí {ZkouskaConstants.AbsenceEmoji} pokud se chcete omluvit z této zkoušky.*\n" +
+               $"*Reagujte pomocí {ZkouskaConstants.LateEmoji} pokud přijdete pozdě.*\n" +
+               $"*Reagujte pomocí {ZkouskaConstants.AttendingEmoji} pokud se vaše situace změnila a přijdete.*\n" +
+               $"**Vaše reakce po chvilce automaticky zmizí, ale bude zaznamenána.**\n" +
                $"*Moderátoři můžou reagovat pomocí {ZkouskaConstants.DeleteEmoji}, aby uzavřeli omluvenky na tuto zkoušku.*";
     }
 
@@ -42,6 +44,20 @@ internal static class ZkouskaMessageBuilder
             .WithAuthor(displayName, avatarUrl)
             .WithDescription("**Omluvenka ze zkoušky**")
             .WithColor(Color.Blue)
+            .WithCurrentTimestamp()
+            .WithFooter($"{ZkouskaConstants.UserIdPrefix}{userId}")
+            .Build();
+    }
+
+    /// <summary>
+    /// Creates an embed for late arrival notification in thread
+    /// </summary>
+    public static Embed CreateLateEmbed(string displayName, string avatarUrl, ulong userId)
+    {
+        return new EmbedBuilder()
+            .WithAuthor(displayName, avatarUrl)
+            .WithDescription("**Přijde pozdě**")
+            .WithColor(Color.Orange)
             .WithCurrentTimestamp()
             .WithFooter($"{ZkouskaConstants.UserIdPrefix}{userId}")
             .Build();
