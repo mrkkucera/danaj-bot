@@ -16,7 +16,8 @@ internal static class ZkouskaConstants
     // Message templates
     public const string NoPermissionMessage = "🔒 Potřebujete moderátorské oprávnění k vytvoření zkoušky!";
     public const string MissingDescriptionMessage = "⚠️ Chybí popis! Použití: `{0} <description>`";
-    public const string ChannelNotFoundMessage = "❌ Chyba: Nelze najít cílový kanál.";
+    public const string LogChannelNotFoundMessage = "❌ Chyba: Nelze najít kanál pro omluvenky.";
+    public const string AnnouncementChannelNotFoundMessage = "❌ Chyba: Nelze najít kanál pro zkoušky.";
     public const string CreateErrorMessage = "❌ Chyba pri vytvareni zkousky. Zkuste to prosím znovu.";
     
     // Regex patterns

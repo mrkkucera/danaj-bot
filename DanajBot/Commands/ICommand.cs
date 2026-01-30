@@ -13,6 +13,11 @@ internal interface ICommand
     string CommandName { get; }
     
     /// <summary>
+    /// Usage information shown in !help
+    /// </summary>
+    string Usage { get; }
+    
+    /// <summary>
     /// Handles the command execution
     /// </summary>
     /// <param name="message">The message that triggered the command</param>

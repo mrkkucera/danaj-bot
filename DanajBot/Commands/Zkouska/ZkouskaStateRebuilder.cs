@@ -11,18 +11,21 @@ internal class ZkouskaStateRebuilder
 {
     private readonly DiscordSocketClient _client;
     private readonly ILogger<ZkouskaStateRebuilder> _logger;
-    private readonly ZkouskaSettings _settings;
+    private readonly ZkouskaSettings _zkouskaSettings;
+    private readonly AppSettings _appSettings;
     private readonly ZkouskaState _state;
 
     public ZkouskaStateRebuilder(
         DiscordSocketClient client,
-        ZkouskaSettings settings,
+        ZkouskaSettings zkouskaSettings,
+        AppSettings appSettings,
         ZkouskaState state,
         ILogger<ZkouskaStateRebuilder> logger)
     {
         _client = client;
         _logger = logger;
-        _settings = settings;
+        _zkouskaSettings = zkouskaSettings;
+        _appSettings = appSettings;
         _state = state;
     }
 
@@ -80,7 +83,7 @@ internal class ZkouskaStateRebuilder
     /// </summary>
     private async Task<IMessageChannel?> GetSourceChannelAsync()
     {
-        var channel = await _client.GetChannelAsync(_settings.SourceChannelId) as IMessageChannel;
+        var channel = await _client.GetChannelAsync(_appSettings.BotChatChannelId) as IMessageChannel;
         if (channel == null)
         {
             _logger.LogError("❌ Could not find source channel!");
@@ -93,7 +96,7 @@ internal class ZkouskaStateRebuilder
     /// </summary>
     private async Task<ITextChannel?> GetDestinationChannelAsync()
     {
-        var channel = await _client.GetChannelAsync(_settings.DestinationChannelId) as ITextChannel;
+        var channel = await _client.GetChannelAsync(_zkouskaSettings.LogChannelId) as ITextChannel;
         if (channel == null)
         {
             _logger.LogError("❌ Could not find destination channel!");
@@ -190,7 +193,9 @@ internal class ZkouskaStateRebuilder
 
                     // Skip creator messages
                     if (ZkouskaHelper.IsCreatorMessage(footerText))
+                    {
                         continue;
+                    }
 
                     // Extract user ID from absence/late messages
                     if (ZkouskaHelper.TryExtractUserIdFromFooter(footerText, out var userId))

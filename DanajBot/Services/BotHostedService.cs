@@ -37,14 +37,11 @@ internal class BotHostedService : IHostedService
             throw new InvalidOperationException("DISCORD_TOKEN is required in configuration.");
         }
 
-        if (_zkouskaSettings.SourceChannelId == 0 || _zkouskaSettings.DestinationChannelId == 0)
+        if (_settings.BotChatChannelId == 0 || _zkouskaSettings.LogChannelId == 0 || _zkouskaSettings.AnnouncementChannelId == 0)
         {
             _logger.LogCritical("❌ Error: Missing zkouska channel configuration!");
             _logger.LogInformation("Please check your configuration and ensure all required variables are set:");
-            _logger.LogInformation("- AppSettings:DiscordToken");
-            _logger.LogInformation("- AppSettings:Zkouska:SourceChannelId");
-            _logger.LogInformation("- AppSettings:Zkouska:DestinationChannelId");
-            throw new InvalidOperationException("Zkouska channel IDs are required in configuration.");
+            throw new InvalidOperationException("Required bot settings not present, check app settings or ENV variables");
         }
 
         // Login and start the client

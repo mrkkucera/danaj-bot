@@ -1,5 +1,4 @@
 ﻿using Discord.WebSocket;
-using Microsoft.Extensions.Logging;
 
 namespace DanajBot.Commands;
 
@@ -30,7 +29,15 @@ internal class CommandHandler
     {
         // Ignore messages from bots
         if (message.Author.IsBot)
+        {
             return false;
+        }
+
+        // Ignore message if it doesn't start with the command prefix
+        if (!IsCommandMessage(message))
+        {
+            return false;
+        }
 
         // Try each command until one handles the message
         foreach (var command in _commands)
@@ -51,7 +58,28 @@ internal class CommandHandler
             }
         }
 
+        // If no command handled the message, reply with help
+        await ReplyWithHelpAsync(message);
+        
         return false;
+    }
+
+    private static bool IsCommandMessage(SocketMessage message)
+    {
+        return message.Content.StartsWith('!');
+    }
+
+    private async Task ReplyWithHelpAsync(SocketMessage message)
+    {
+        try
+        {
+            var helpOutput = HelpCommand.BuildHelpMessage(_commands);
+            await message.Channel.SendMessageAsync(helpOutput);
+        }
+        catch (Exception error)
+        {
+            _logger.LogError(error, "❌ Error replying with help for unknown command");
+        }
     }
 
     /// <summary>

@@ -14,9 +14,11 @@ internal class ZkouskaCommand : ICommand
     private readonly ZkouskaStateRebuilder _stateRebuilder;
     private readonly ZkouskaReactionHandler _reactionHandler;
     private readonly ZkouskaState _state;
-    private readonly ZkouskaSettings _settings;
+    private readonly AppSettings _settings;
+    private readonly ZkouskaSettings _zkouskaSettings;
 
     public string CommandName => "!zkouska";
+    public string Usage => "!zkouska <popis> — Vytvoří oznámení o zkoušce a založí vlákno pro omluvenky";
 
     public ZkouskaCommand(
         DiscordSocketClient client,
@@ -24,7 +26,8 @@ internal class ZkouskaCommand : ICommand
         ZkouskaStateRebuilder stateRebuilder,
         ZkouskaReactionHandler reactionHandler,
         ZkouskaState state,
-        ZkouskaSettings settings)
+        AppSettings settings,
+        ZkouskaSettings zkouskaSettings)
     {
         _client = client;
         _logger = logger;
@@ -32,12 +35,15 @@ internal class ZkouskaCommand : ICommand
         _reactionHandler = reactionHandler;
         _state = state;
         _settings = settings;
+        _zkouskaSettings = zkouskaSettings;
     }
 
     public async Task<bool> HandleAsync(SocketMessage message)
     {
         if (!IsValidCommand(message))
+        {
             return false;
+        }
 
         var guildUser = message.Author as SocketGuildUser;
         
@@ -77,18 +83,26 @@ internal class ZkouskaCommand : ICommand
         SocketReaction reaction)
     {
         if (reaction.User.IsSpecified && reaction.User.Value.IsBot)
+        {
             return;
+        }
 
         var message = await cache.GetOrDownloadAsync();
         if (message == null)
+        {
             return;
+        }
 
         if (!_state.ZkouskaMessageIdToThreadId.TryGetValue(message.Id, out var threadId))
+        {
             return;
+        }
 
         var user = await GetUserFromReactionAsync(reaction);
         if (user == null)
+        {
             return;
+        }
 
         var guild = (message.Channel as SocketGuildChannel)?.Guild;
         var member = guild?.GetUser(user.Id);
@@ -98,7 +112,7 @@ internal class ZkouskaCommand : ICommand
 
     private bool IsValidCommand(SocketMessage message)
     {
-        return message.Channel.Id == _settings.SourceChannelId &&
+        return message.Channel.Id == _settings.BotChatChannelId &&
                message.Content.StartsWith($"{CommandName} ");
     }
 
@@ -122,16 +136,22 @@ internal class ZkouskaCommand : ICommand
     {
         try
         {
-            var destinationChannel = await GetDestinationChannelAsync();
-            if (destinationChannel == null)
+            var logChannel = await GetChannelAsync(_zkouskaSettings.LogChannelId);
+            if (logChannel == null)
             {
-                await message.Channel.SendMessageAsync(ZkouskaConstants.ChannelNotFoundMessage);
+                await message.Channel.SendMessageAsync(ZkouskaConstants.LogChannelNotFoundMessage + $"<#{_zkouskaSettings.LogChannelId}>");
+                return;
+            }
+            var announcementChannel = await GetChannelAsync(_zkouskaSettings.AnnouncementChannelId);
+            if (announcementChannel == null)
+            {
+                await message.Channel.SendMessageAsync(ZkouskaConstants.AnnouncementChannelNotFoundMessage + $"<#{_zkouskaSettings.AnnouncementChannelId}>");
                 return;
             }
 
             var zkouskaId = ZkouskaMessageBuilder.GenerateZkouskaId();
-            var zkouskaMessage = await SendZkouskaMessageAsync(message.Channel, zkouskaId, description);
-            var thread = await CreateZkouskaAbsencesThreadAsync(destinationChannel, description, zkouskaId);
+            var zkouskaMessage = await SendZkouskaMessageAsync(announcementChannel, zkouskaId, description);
+            var thread = await CreateZkouskaAbsencesThreadAsync(logChannel, description, zkouskaId);
 
             _state.ZkouskaMessageIdToThreadId[zkouskaMessage.Id] = thread.Id;
             _state.ZkouskaMessageToUserReactions[zkouskaMessage.Id] = new HashSet<ulong>();
@@ -148,9 +168,9 @@ internal class ZkouskaCommand : ICommand
         }
     }
 
-    private async Task<ITextChannel?> GetDestinationChannelAsync()
+    private async Task<ITextChannel?> GetChannelAsync(ulong channelId)
     {
-        var channel = await _client.GetChannelAsync(_settings.DestinationChannelId) as ITextChannel;
+        var channel = await _client.GetChannelAsync(channelId) as ITextChannel;
         if (channel == null)
         {
             _logger.LogError("❌ Could not find destination channel!");
@@ -159,7 +179,7 @@ internal class ZkouskaCommand : ICommand
     }
 
     private static async Task<IUserMessage> SendZkouskaMessageAsync(
-        ISocketMessageChannel channel,
+        ITextChannel channel,
         string zkouskaId,
         string description)
     {

@@ -2,6 +2,6 @@
 
 internal class ZkouskaSettings
 {
-    public ulong SourceChannelId { get; set; }
-    public ulong DestinationChannelId { get; set; }
+    public ulong AnnouncementChannelId { get; set; }
+    public ulong LogChannelId { get; set; }
 }

@@ -10,7 +10,6 @@ using System.Text;
 Console.OutputEncoding = Encoding.UTF8;
 
 var builder = Host.CreateApplicationBuilder(args);
-
 // Configure settings from AppSettings section
 var settings = builder.Configuration.GetSection("AppSettings").Get<AppSettings>()!;
 builder.Services.AddSingleton(settings);
@@ -30,6 +29,7 @@ builder.Services.AddSingleton<ZkouskaReactionHandler>();
 
 // Register commands
 builder.Services.AddSingleton<ICommand, ZkouskaCommand>();
+builder.Services.AddSingleton<ICommand, HelpCommand>();
 
 // Register command handler
 builder.Services.AddSingleton<CommandHandler>();
