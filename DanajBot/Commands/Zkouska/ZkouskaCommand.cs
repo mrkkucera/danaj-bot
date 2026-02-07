@@ -189,7 +189,7 @@ internal class ZkouskaCommand : ICommand
         await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.AbsenceEmoji));
         await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.LateEmoji));
         await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.AttendingEmoji));
-        await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.DeleteEmoji));
+        await zkouskaMessage.AddReactionAsync(new Emoji(ZkouskaConstants.CloseEmoji));
 
         return zkouskaMessage;
     }
@@ -251,10 +251,10 @@ internal class ZkouskaCommand : ICommand
     {
         switch (emoteName)
         {
-            case ZkouskaConstants.DeleteEmoji:
-                if (await _reactionHandler.HandleDeleteReactionAsync(message, user, member, threadId))
+            case ZkouskaConstants.CloseEmoji:
+                if (await _reactionHandler.HandleCloseReactionAsync(message, user, member, threadId))
                 {
-                    // Remove from tracking if successfully deleted
+                    // Remove from tracking if successfully closed
                     _state.ZkouskaMessageIdToThreadId.TryRemove(message.Id, out _);
                     _state.ZkouskaMessageToUserReactions.TryRemove(message.Id, out _);
                 }

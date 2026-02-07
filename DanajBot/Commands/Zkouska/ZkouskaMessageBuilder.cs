@@ -18,7 +18,7 @@ internal static class ZkouskaMessageBuilder
                $"*Reagujte pomocí {ZkouskaConstants.LateEmoji} pokud přijdete pozdě.*\n" +
                $"*Reagujte pomocí {ZkouskaConstants.AttendingEmoji} pokud se vaše situace změnila a přijdete.*\n" +
                $"**Vaše reakce po chvilce automaticky zmizí, ale bude zaznamenána.**\n" +
-               $"*Moderátoři můžou reagovat pomocí {ZkouskaConstants.DeleteEmoji}, aby uzavřeli omluvenky na tuto zkoušku.*";
+               $"*Moderátoři můžou reagovat pomocí {ZkouskaConstants.CloseEmoji}, aby uzavřeli omluvenky na tuto zkoušku.*";
     }
 
     /// <summary>
@@ -96,5 +96,15 @@ internal static class ZkouskaMessageBuilder
     public static string GenerateZkouskaId()
     {
         return Guid.NewGuid().ToString("N")[..ZkouskaConstants.ZkouskaIdLength];
+    }
+
+    /// <summary>
+    /// Creates the closed zkouska announcement message
+    /// </summary>
+    public static string CreateClosedZkouskaMessage(string zkouskaId, string description)
+    {
+        return $"{ZkouskaConstants.ZkouskaEmoji} **Zkouška** `#{zkouskaId}`\n\n" +
+               $"{description}\n\n" +
+               $"{ZkouskaConstants.LockEmoji} **Omluvenky byly uzavřeny.**";
     }
 }

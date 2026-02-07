@@ -23,33 +23,33 @@ internal class ZkouskaReactionHandler
     }
 
     /// <summary>
-    /// Handles delete reaction from moderators
+    /// Handles close reaction from moderators
     /// </summary>
-    public async Task<bool> HandleDeleteReactionAsync(IUserMessage message, IUser user, SocketGuildUser? member, ulong threadId)
+    public async Task<bool> HandleCloseReactionAsync(IUserMessage message, IUser user, SocketGuildUser? member, ulong threadId)
     {
         if (!IsModeratorInChannel(member, message.Channel))
         {
-            _logger.LogWarning("⚠️ {Username} attempted to delete zkouska but lacks moderator permissions", user.Username);
-            await message.RemoveReactionAsync(new Emoji(ZkouskaConstants.DeleteEmoji), user);
+            _logger.LogWarning("⚠️ {Username} attempted to close zkouska but lacks moderator permissions", user.Username);
+            await message.RemoveReactionAsync(new Emoji(ZkouskaConstants.CloseEmoji), user);
             return false;
         }
 
         try
         {
-            _logger.LogInformation("🗑️ {Username} is deleting zkouska message {MessageId}", user.Username, message.Id);
+            _logger.LogInformation("🔒 {Username} is closing zkouska message {MessageId}", user.Username, message.Id);
 
             var zkouskaId = ZkouskaHelper.ExtractZkouskaId(message.Content) ?? "Unknown";
 
             await CloseZkouskaThreadAsync(threadId, member!, user);
-            await message.DeleteAsync();
+            await UpdateMessageToClosedAsync(message, zkouskaId);
             CleanupZkouskaState(message.Id);
 
-            _logger.LogInformation("✅ {Username} successfully deleted zkouska {ZkouskaId}", user.Username, zkouskaId);
+            _logger.LogInformation("✅ {Username} successfully closed zkouska {ZkouskaId}", user.Username, zkouskaId);
             return true;
         }
         catch (Exception error)
         {
-            _logger.LogError(error, "❌ Error deleting zkouska message");
+            _logger.LogError(error, "❌ Error closing zkouska message");
             return false;
         }
     }
@@ -289,6 +289,23 @@ internal class ZkouskaReactionHandler
         await thread.SendMessageAsync(embed: closingEmbed);
 
         _logger.LogInformation("📝 Posted closing message to thread {ThreadId}", thread.Id);
+    }
+
+    private async Task UpdateMessageToClosedAsync(IUserMessage message, string zkouskaId)
+    {
+        var originalContent = message.Content;
+        var descriptionStart = originalContent.IndexOf('\n');
+        var descriptionEnd = originalContent.IndexOf("*Reagujte pomocí");
+        
+        var description = descriptionEnd > descriptionStart 
+            ? originalContent.Substring(descriptionStart + 1, descriptionEnd - descriptionStart - 1).Trim()
+            : "Popis nedostupný";
+
+        var closedMessage = ZkouskaMessageBuilder.CreateClosedZkouskaMessage(zkouskaId, description);
+        await message.ModifyAsync(props => props.Content = closedMessage);
+        await message.RemoveAllReactionsAsync();
+        
+        _logger.LogInformation("📝 Updated message {MessageId} to closed state", message.Id);
     }
 
     private static bool IsModeratorInChannel(SocketGuildUser? member, IMessageChannel channel)
