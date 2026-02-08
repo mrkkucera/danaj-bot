@@ -14,7 +14,6 @@ internal class ZkouskaCommand : ICommand
     private readonly ZkouskaStateRebuilder _stateRebuilder;
     private readonly ZkouskaReactionHandler _reactionHandler;
     private readonly ZkouskaState _state;
-    private readonly AppSettings _settings;
     private readonly ZkouskaSettings _zkouskaSettings;
 
     public string CommandName => "!zkouska";
@@ -26,7 +25,6 @@ internal class ZkouskaCommand : ICommand
         ZkouskaStateRebuilder stateRebuilder,
         ZkouskaReactionHandler reactionHandler,
         ZkouskaState state,
-        AppSettings settings,
         ZkouskaSettings zkouskaSettings)
     {
         _client = client;
@@ -34,7 +32,6 @@ internal class ZkouskaCommand : ICommand
         _stateRebuilder = stateRebuilder;
         _reactionHandler = reactionHandler;
         _state = state;
-        _settings = settings;
         _zkouskaSettings = zkouskaSettings;
     }
 
@@ -112,8 +109,7 @@ internal class ZkouskaCommand : ICommand
 
     private bool IsValidCommand(SocketMessage message)
     {
-        return message.Channel.Id == _settings.BotChatChannelId &&
-               message.Content.StartsWith($"{CommandName} ");
+        return message.Content.StartsWith($"{CommandName} ");
     }
 
     private static bool HasModeratorPermissions(SocketGuildUser? guildUser, ISocketMessageChannel channel)

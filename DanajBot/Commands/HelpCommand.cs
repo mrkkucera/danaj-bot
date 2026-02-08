@@ -1,21 +1,17 @@
 ﻿using Discord.WebSocket;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DanajBot.Commands;
 
 internal class HelpCommand : ICommand
 {
     private readonly IServiceProvider _services;
-    private readonly Settings.AppSettings _settings;
 
     public string CommandName => "!help";
     public string Usage => "!help — Zobrazí dostupné příkazy a jejich použití";
 
-    public HelpCommand(IServiceProvider services, Settings.AppSettings settings)
+    public HelpCommand(IServiceProvider services)
     {
         _services = services;
-        _settings = settings;
     }
 
     public async Task<bool> HandleAsync(SocketMessage message)
@@ -25,7 +21,7 @@ internal class HelpCommand : ICommand
             return false;
         }
 
-        if (message.Channel.Id != _settings.BotChatChannelId || !message.Content.StartsWith("!help"))
+        if (!message.Content.StartsWith(CommandName))
         {
             return false;
         }

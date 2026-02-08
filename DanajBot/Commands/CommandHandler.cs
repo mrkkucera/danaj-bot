@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using DanajBot.Settings;
+using Discord.WebSocket;
 
 namespace DanajBot.Commands;
 
@@ -9,10 +10,12 @@ internal class CommandHandler
 {
     private readonly ILogger<CommandHandler> _logger;
     private readonly List<ICommand> _commands;
+    private readonly AppSettings _settings;
 
-    public CommandHandler(IEnumerable<ICommand> commands, ILogger<CommandHandler> logger)
+    public CommandHandler(IEnumerable<ICommand> commands, AppSettings settings, ILogger<CommandHandler> logger)
     {
         _commands = commands.ToList();
+        _settings = settings;
         _logger = logger;
         
         _logger.LogInformation("Registered {CommandCount} commands: {Commands}", 
@@ -35,6 +38,12 @@ internal class CommandHandler
 
         // Ignore message if it doesn't start with the command prefix
         if (!IsCommandMessage(message))
+        {
+            return false;
+        }
+
+        // Only process commands in the bot channel
+        if (message.Channel.Id != _settings.BotChatChannelId)
         {
             return false;
         }
