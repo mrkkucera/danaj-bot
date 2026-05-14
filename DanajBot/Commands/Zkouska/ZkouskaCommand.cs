@@ -92,6 +92,8 @@ internal class ZkouskaCommand : ICommand
 
         if (!_state.ZkouskaMessageIdToThreadId.TryGetValue(message.Id, out var threadId))
         {
+            _logger.LogWarning("⚠️ Reaction on message {MessageId} by {UserId} not handled - message not tracked in zkouska state",
+                message.Id, reaction.UserId);
             return;
         }
 

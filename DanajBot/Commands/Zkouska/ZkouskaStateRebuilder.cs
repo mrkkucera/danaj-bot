@@ -12,20 +12,17 @@ internal class ZkouskaStateRebuilder
     private readonly DiscordSocketClient _client;
     private readonly ILogger<ZkouskaStateRebuilder> _logger;
     private readonly ZkouskaSettings _zkouskaSettings;
-    private readonly AppSettings _appSettings;
     private readonly ZkouskaState _state;
 
     public ZkouskaStateRebuilder(
         DiscordSocketClient client,
         ZkouskaSettings zkouskaSettings,
-        AppSettings appSettings,
         ZkouskaState state,
         ILogger<ZkouskaStateRebuilder> logger)
     {
         _client = client;
         _logger = logger;
         _zkouskaSettings = zkouskaSettings;
-        _appSettings = appSettings;
         _state = state;
     }
 
@@ -79,14 +76,14 @@ internal class ZkouskaStateRebuilder
     }
 
     /// <summary>
-    /// Fetches the source channel
+    /// Fetches the source channel (announcement channel where zkouska messages are posted)
     /// </summary>
     private async Task<IMessageChannel?> GetSourceChannelAsync()
     {
-        var channel = await _client.GetChannelAsync(_appSettings.BotChatChannelId) as IMessageChannel;
+        var channel = await _client.GetChannelAsync(_zkouskaSettings.AnnouncementChannelId) as IMessageChannel;
         if (channel == null)
         {
-            _logger.LogError("❌ Could not find source channel!");
+            _logger.LogError("❌ Could not find source channel (announcement channel {ChannelId})!", _zkouskaSettings.AnnouncementChannelId);
         }
         return channel;
     }
